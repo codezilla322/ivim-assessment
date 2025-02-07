@@ -7,6 +7,7 @@ export default function NoteEdit() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -21,12 +22,26 @@ export default function NoteEdit() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (id) {
-      await updateNote(id, { title, content });
-    } else {
-      await createNote({ title, content });
+    if (!title || !content) {
+      setErrorMsg("Title and content are required");
+      return;
     }
-    navigate("/");
+
+    try {
+      let response;
+      if (id) {
+        response = await updateNote(id, { title, content });
+      } else {
+        response = await createNote({ title, content });
+      }
+      if (response.status === 201 || response.status === 200) navigate("/");
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMsg((error as any).response?.data?.message || error.message);
+      } else {
+        console.log("An error occurred");
+      }
+    }
   };
 
   return (
@@ -39,8 +54,8 @@ export default function NoteEdit() {
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            onFocus={() => setErrorMsg("")}
             style={{ padding: "0.5rem", fontSize: "1rem" }}
-            required
           />
         </div>
         <div style={{ marginBottom: "1rem" }}>
@@ -48,11 +63,20 @@ export default function NoteEdit() {
             placeholder="Content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onFocus={() => setErrorMsg("")}
             style={{ padding: "0.5rem", fontSize: "1rem" }}
             cols={30}
             rows={10}
-            required
           />
+        </div>
+        <div
+          style={{
+            marginBottom: "1rem",
+            display: errorMsg ? "block" : "none",
+            color: "red",
+          }}
+        >
+          <p>{errorMsg}</p>
         </div>
         <button type="submit">{id ? "Update" : "Create"}</button>
       </form>
